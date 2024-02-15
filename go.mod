@@ -1,3 +1,3 @@
 module github.com/arvindeva/touhouapi
 
-go 1.21.6
+go 1.21
