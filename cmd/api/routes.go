@@ -10,10 +10,12 @@ func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
 
+	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/touhous", app.createTouhouHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/touhous/:id", app.showTouhouHandler)
 
 	// Return the httprouter instance.
-	return router
+	return app.recoverPanic(router)
 }

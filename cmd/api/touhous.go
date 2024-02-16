@@ -3,23 +3,45 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/arvindeva/touhouapi/internal/data"
 )
 
 func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "create a new touhou")
+	var payload struct {
+		Name      string   `json:"name"`
+		Species   string   `json:"species"`
+		Abilities []string `json:"abilities"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		return
+
+	}
+	fmt.Fprintf(w, "%+v\n", payload)
 }
 
 func (app *application) showTouhouHandler(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
+	id, err := app.readIDParam(r)
 
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err != nil || id < 1 {
-		http.NotFound(w, r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+
 		return
 	}
 
-	fmt.Fprintf(w, "show the details of touhou %d\n", id)
+	touhou := data.Touhou{
+		ID:        id,
+		Name:      "Reimu Hakurei",
+		Species:   "Human",
+		Abilities: []string{"Flying", "Spiritual Power"},
+	}
+
+	// Encode the struct to JSON and send it as the HTTP response.
+	err = app.writeJSON(w, http.StatusOK, envelope{"touhou": touhou}, nil)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+	}
 }
