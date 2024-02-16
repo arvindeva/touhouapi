@@ -1,4 +1,4 @@
-module github.com/arvindeva/touhouapi
+module github.com/arvindeva/touhouapi-cms
 
 go 1.21
 

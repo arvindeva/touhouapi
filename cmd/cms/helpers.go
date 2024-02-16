@@ -52,8 +52,6 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
-
-	// Decode the request body to the destination.
 	err := dec.Decode(dst)
 	if err != nil {
 		var syntaxError *json.SyntaxError
@@ -73,7 +71,6 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
 			}
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
-
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
@@ -83,11 +80,9 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 			return fmt.Errorf("body must not be larger than %d bytes", maxBytesError.Limit)
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
-
 		default:
 			return err
 		}
-
 	}
 	err = dec.Decode(&struct{}{})
 	if !errors.Is(err, io.EOF) {

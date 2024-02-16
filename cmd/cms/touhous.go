@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/arvindeva/touhouapi/internal/data"
+	"github.com/arvindeva/touhouapi-cms/internal/data"
+	"github.com/arvindeva/touhouapi-cms/internal/validator"
 )
 
 func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +20,22 @@ func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Reque
 		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 		return
 
+	}
+
+	v := validator.New()
+
+	// name field validation
+	v.Check(payload.Name != "", "name", "must be provided")
+	v.Check(len(payload.Name) < 500, "name", "must not be more than 500 bytes")
+
+	// species field validation
+	v.Check(payload.Species != "", "species", "must be provided")
+
+	// abilities field validation
+	v.Check(validator.Unique(payload.Abilities), "abilities", "must not contain duplicate values")
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
 	}
 	fmt.Fprintf(w, "%+v\n", payload)
 }
