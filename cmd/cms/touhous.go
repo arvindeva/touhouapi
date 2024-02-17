@@ -9,17 +9,30 @@ import (
 	"github.com/arvindeva/touhouapi-cms/internal/validator"
 )
 
-func (app *application) getAllTouhousHandler(w http.ResponseWriter, r *http.Request) {
-	touhous, err := app.models.Touhous.GetAll()
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
+func (app *application) listTouhousHandler(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Name    string
+		Species string
+		data.Filters
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"touhous": touhous}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	payload.Name = app.readString(qs, "name", "")
+	payload.Species = app.readString(qs, "species", "")
+
+	payload.Filters.Page = app.readInt(qs, "page", 1, v)
+	payload.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	payload.Filters.Sort = app.readString(qs, "sort", "id")
+	payload.Filters.SortSafeList = []string{"id", "name", "species", "-id", "-name", "-species"}
+
+	if data.ValidateFilters(v, payload.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
 	}
+	fmt.Fprintf(w, "%+v\n", payload)
 }
 
 func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +168,9 @@ func (app *application) showTouhouHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"touhou": touhou}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) deleteTouhouHandler(w http.ResponseWriter, r *http.Request) {
