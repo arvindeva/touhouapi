@@ -79,9 +79,44 @@ func (t TouhouModel) Insert(touhou *Touhou) error {
 }
 
 func (t TouhouModel) Update(touhou *Touhou) error {
-	return nil
+	query := `
+		UPDATE
+			touhous
+		SET
+			name = $1, species = $2, abilities = $3, version = version + 1
+		WHERE
+			id = $4
+		RETURNING
+			version`
+
+	args := []any{touhou.Name, touhou.Species, pq.Array(touhou.Abilities), touhou.ID}
+
+	return t.DB.QueryRow(query, args...).Scan(&touhou.Version)
 }
 
 func (t TouhouModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+
+	DELETE FROM
+		touhous
+	WHERE
+		id = $1
+	`
+
+	result, err := t.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
 	return nil
 }
