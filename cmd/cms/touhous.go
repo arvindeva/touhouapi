@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -22,22 +23,33 @@ func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Reque
 
 	}
 
+	touhou := &data.Touhou{
+		Name:      payload.Name,
+		Species:   payload.Species,
+		Abilities: payload.Abilities,
+	}
+
 	v := validator.New()
 
-	// name field validation
-	v.Check(payload.Name != "", "name", "must be provided")
-	v.Check(len(payload.Name) < 500, "name", "must not be more than 500 bytes")
-
-	// species field validation
-	v.Check(payload.Species != "", "species", "must be provided")
-
-	// abilities field validation
-	v.Check(validator.Unique(payload.Abilities), "abilities", "must not contain duplicate values")
-	if !v.Valid() {
+	if data.ValidateTouhou(v, touhou); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", payload)
+
+	err = app.models.Touhous.Insert(touhou)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/touhous/%d", touhou.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"touhou": touhou}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }
 
 func (app *application) showTouhouHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,20 +57,20 @@ func (app *application) showTouhouHandler(w http.ResponseWriter, r *http.Request
 
 	if err != nil {
 		app.notFoundResponse(w, r)
-
 		return
 	}
 
-	touhou := data.Touhou{
-		ID:        id,
-		Name:      "Reimu Hakurei",
-		Species:   "Human",
-		Abilities: []string{"Flying", "Spiritual Power"},
-	}
+	touhou, err := app.models.Touhous.Get(id)
 
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 	// Encode the struct to JSON and send it as the HTTP response.
 	err = app.writeJSON(w, http.StatusOK, envelope{"touhou": touhou}, nil)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-	}
 }
