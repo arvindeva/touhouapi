@@ -39,10 +39,16 @@ func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*To
 			*
 		FROM
 			touhous
+        WHERE
+            (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
+        AND
+            (LOWER(species) = LOWER($2) OR $2 = '')
 		ORDER BY
 			id ASC`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-	rows, err := t.DB.Query(query)
+	rows, err := t.DB.QueryContext(ctx, query, name, species)
 
 	if err != nil {
 		return nil, err

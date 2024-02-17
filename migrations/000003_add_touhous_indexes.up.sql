@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS touhous_name_idx ON touhous USING GIN (to_tsvector('simple', name));

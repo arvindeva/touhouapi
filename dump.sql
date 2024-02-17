@@ -96,7 +96,7 @@ ALTER TABLE ONLY public.touhous ALTER COLUMN id SET DEFAULT nextval('public.touh
 --
 
 COPY public.schema_migrations (version, dirty) FROM stdin;
-2	f
+3	f
 \.
 
 
@@ -108,7 +108,6 @@ COPY public.touhous (id, created_at, name, species, abilities, version) FROM std
 2	2024-02-17 11:56:22+01	Marisa Kirisame	Human	{"Using Magic"}	1
 4	2024-02-17 16:40:40+01	Sanae Kochiya	Human	{"Causing miracles to occur"}	4
 3	2024-02-17 12:04:14+01	Sakuya Izayoi	Human	{"Space-time manipulation"}	4
-1	2024-02-17 11:56:05+01	Weimu Hakuwei	Human	{"Ability to Float","Aura Manipulation"}	3
 5	2024-02-17 19:51:34+01	Reimu Hakurei	Human	{Flying,"Aura Manipulation","Youkai Extermination"}	1
 6	2024-02-17 19:51:34+01	Marisa Kirisame	Human	{"Using Magic"}	1
 7	2024-02-17 19:51:34+01	Sanae Kochiya	Human	{"Divine Miracles","Control Over Wind and Rain"}	1
@@ -150,6 +149,7 @@ COPY public.touhous (id, created_at, name, species, abilities, version) FROM std
 43	2024-02-17 19:51:34+01	Yumeko	Human	{"Space Manipulation","Dimensional Travel"}	1
 44	2024-02-17 19:51:34+01	Yumemi	Human	{"Space Manipulation","Scientific Knowledge"}	1
 45	2024-02-17 19:51:34+01	Irusu	Human	{Teleportation,Invisibility}	1
+1	2024-02-17 11:56:05+01	Reimu Hakurei	Human	{"Ability to Float","Aura Manipulation"}	5
 \.
 
 
@@ -174,6 +174,13 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.touhous
     ADD CONSTRAINT touhous_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: touhous_name_idx; Type: INDEX; Schema: public; Owner: admin
+--
+
+CREATE INDEX touhous_name_idx ON public.touhous USING gin (to_tsvector('simple'::regconfig, name));
 
 
 --
