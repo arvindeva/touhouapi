@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/arvindeva/touhouapi-cms/internal/validator"
 	"github.com/lib/pq"
-	"time"
 )
 
 // Touhou represents a Touhou character.
@@ -32,7 +33,7 @@ func ValidateTouhou(v *validator.Validator, touhou *Touhou) {
 	v.Check(validator.Unique(touhou.Abilities), "abilities", "must not contain duplicate values")
 }
 
-func (t TouhouModel) GetAll() ([]Touhou, error) {
+func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*Touhou, error) {
 	query := `
 		SELECT
 			*
@@ -48,7 +49,7 @@ func (t TouhouModel) GetAll() ([]Touhou, error) {
 	}
 	defer rows.Close()
 
-	var touhous []Touhou
+	touhous := []*Touhou{}
 
 	for rows.Next() {
 		var touhou Touhou
@@ -63,7 +64,7 @@ func (t TouhouModel) GetAll() ([]Touhou, error) {
 		if err != nil {
 			return nil, err
 		}
-		touhous = append(touhous, touhou)
+		touhous = append(touhous, &touhou)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
