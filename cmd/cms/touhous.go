@@ -9,6 +9,19 @@ import (
 	"github.com/arvindeva/touhouapi-cms/internal/validator"
 )
 
+func (app *application) getAllTouhousHandler(w http.ResponseWriter, r *http.Request) {
+	touhous, err := app.models.Touhous.GetAll()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"touhous": touhous}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) createTouhouHandler(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Name      string   `json:"name"`
@@ -72,8 +85,8 @@ func (app *application) updateTouhouHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	var payload struct {
-		Name      string   `json:"name"`
-		Species   string   `json:"species"`
+		Name      *string  `json:"name"`
+		Species   *string  `json:"species"`
 		Abilities []string `json:"abilities"`
 	}
 
@@ -84,9 +97,17 @@ func (app *application) updateTouhouHandler(w http.ResponseWriter, r *http.Reque
 
 	}
 
-	touhou.Name = payload.Name
-	touhou.Species = payload.Species
-	touhou.Abilities = payload.Abilities
+	if payload.Name != nil {
+		touhou.Name = *payload.Name
+	}
+
+	if payload.Species != nil {
+		touhou.Species = *payload.Species
+	}
+
+	if payload.Abilities != nil {
+		touhou.Abilities = payload.Abilities
+	}
 
 	v := validator.New()
 
@@ -97,7 +118,12 @@ func (app *application) updateTouhouHandler(w http.ResponseWriter, r *http.Reque
 
 	err = app.models.Touhous.Update(touhou)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

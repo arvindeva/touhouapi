@@ -107,7 +107,8 @@ COPY public.schema_migrations (version, dirty) FROM stdin;
 COPY public.touhous (id, created_at, name, species, abilities, version) FROM stdin;
 1	2024-02-17 11:56:05+01	Reimu Hakurei	Human	{"Ability to Float","Aura Manipulation"}	1
 2	2024-02-17 11:56:22+01	Marisa Kirisame	Human	{"Using Magic"}	1
-3	2024-02-17 12:04:14+01	Sakuya Izayoi	Human	{"Space-time manipulation"}	1
+4	2024-02-17 16:40:40+01	Sanae Kochiya	Human	{"Causing miracles to occur"}	4
+3	2024-02-17 12:04:14+01	Sakuya Izayoi	Human	{"Space-time manipulation"}	4
 \.
 
 
@@ -115,7 +116,7 @@ COPY public.touhous (id, created_at, name, species, abilities, version) FROM std
 -- Name: touhous_id_seq; Type: SEQUENCE SET; Schema: public; Owner: admin
 --
 
-SELECT pg_catalog.setval('public.touhous_id_seq', 4, false);
+SELECT pg_catalog.setval('public.touhous_id_seq', 4, true);
 
 
 --

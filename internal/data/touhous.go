@@ -1,12 +1,12 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"time"
-
 	"github.com/arvindeva/touhouapi-cms/internal/validator"
 	"github.com/lib/pq"
+	"time"
 )
 
 // Touhou represents a Touhou character.
@@ -32,6 +32,45 @@ func ValidateTouhou(v *validator.Validator, touhou *Touhou) {
 	v.Check(validator.Unique(touhou.Abilities), "abilities", "must not contain duplicate values")
 }
 
+func (t TouhouModel) GetAll() ([]Touhou, error) {
+	query := `
+		SELECT
+			*
+		FROM
+			touhous
+		ORDER BY
+			id ASC`
+
+	rows, err := t.DB.Query(query)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var touhous []Touhou
+
+	for rows.Next() {
+		var touhou Touhou
+		err := rows.Scan(
+			&touhou.ID,
+			&touhou.CreatedAt,
+			&touhou.Name,
+			&touhou.Species,
+			pq.Array(&touhou.Abilities),
+			&touhou.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		touhous = append(touhous, touhou)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return touhous, nil
+}
+
 func (t TouhouModel) Get(id int64) (*Touhou, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
@@ -45,7 +84,10 @@ func (t TouhouModel) Get(id int64) (*Touhou, error) {
 			id = $1`
 
 	var touhou Touhou
-	err := t.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, id).Scan(
 		&touhou.ID,
 		&touhou.CreatedAt,
 		&touhou.Name,
@@ -75,7 +117,9 @@ func (t TouhouModel) Insert(touhou *Touhou) error {
 			id, created_at, version`
 
 	args := []any{touhou.Name, touhou.Species, pq.Array(touhou.Abilities)}
-	return t.DB.QueryRow(query, args...).Scan(&touhou.ID, &touhou.CreatedAt, &touhou.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	return t.DB.QueryRowContext(ctx, query, args...).Scan(&touhou.ID, &touhou.CreatedAt, &touhou.Version)
 }
 
 func (t TouhouModel) Update(touhou *Touhou) error {
@@ -85,13 +129,24 @@ func (t TouhouModel) Update(touhou *Touhou) error {
 		SET
 			name = $1, species = $2, abilities = $3, version = version + 1
 		WHERE
-			id = $4
+			id = $4 AND version = $5
 		RETURNING
 			version`
 
-	args := []any{touhou.Name, touhou.Species, pq.Array(touhou.Abilities), touhou.ID}
+	args := []any{touhou.Name, touhou.Species, pq.Array(touhou.Abilities), touhou.ID, touhou.Version}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := t.DB.QueryRowContext(ctx, query, args...).Scan(&touhou.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
 
-	return t.DB.QueryRow(query, args...).Scan(&touhou.Version)
+		default:
+			return err
+		}
+	}
+	return nil
 }
 
 func (t TouhouModel) Delete(id int64) error {
@@ -106,7 +161,9 @@ func (t TouhouModel) Delete(id int64) error {
 		id = $1
 	`
 
-	result, err := t.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := t.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
