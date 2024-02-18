@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/arvindeva/touhouapi-cms/internal/validator"
@@ -33,10 +34,10 @@ func ValidateTouhou(v *validator.Validator, touhou *Touhou) {
 	v.Check(validator.Unique(touhou.Abilities), "abilities", "must not contain duplicate values")
 }
 
-func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*Touhou, error) {
-	query := `
+func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*Touhou, Metadata, error) {
+	query := fmt.Sprintf(`
 		SELECT
-			*
+			count(*) OVER(), *
 		FROM
 			touhous
         WHERE
@@ -44,22 +45,24 @@ func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*To
         AND
             (LOWER(species) = LOWER($2) OR $2 = '')
 		ORDER BY
-			id ASC`
+			%s %s, id ASC
+        LIMIT $3 OFFSET $4 `, filters.sortColumn(), filters.sortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := t.DB.QueryContext(ctx, query, name, species)
+	rows, err := t.DB.QueryContext(ctx, query, name, species, filters.limit(), filters.offset())
 
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	defer rows.Close()
-
+	totalRecords := 0
 	touhous := []*Touhou{}
 
 	for rows.Next() {
 		var touhou Touhou
 		err := rows.Scan(
+			&totalRecords,
 			&touhou.ID,
 			&touhou.CreatedAt,
 			&touhou.Name,
@@ -68,14 +71,15 @@ func (t TouhouModel) GetAll(name string, species string, filters Filters) ([]*To
 			&touhou.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		touhous = append(touhous, &touhou)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return touhous, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return touhous, metadata, nil
 }
 
 func (t TouhouModel) Get(id int64) (*Touhou, error) {

@@ -32,12 +32,12 @@ func (app *application) listTouhousHandler(w http.ResponseWriter, r *http.Reques
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	touhous, err := app.models.Touhous.GetAll(payload.Name, payload.Species, payload.Filters)
+	touhous, metadata, err := app.models.Touhous.GetAll(payload.Name, payload.Species, payload.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"touhous": touhous}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"metadata": metadata, "touhous": touhous}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
