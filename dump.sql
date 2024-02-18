@@ -150,6 +150,7 @@ COPY public.touhous (id, created_at, name, species, abilities, version) FROM std
 44	2024-02-17 19:51:34+01	Yumemi	Human	{"Space Manipulation","Scientific Knowledge"}	1
 45	2024-02-17 19:51:34+01	Irusu	Human	{Teleportation,Invisibility}	1
 1	2024-02-17 11:56:05+01	Reimu Hakurei	Human	{"Ability to Float","Aura Manipulation"}	5
+47	2024-02-18 09:20:08+01	Shinmy	Inchling	{"Be small","Get bigger"}	1
 \.
 
 
@@ -157,7 +158,7 @@ COPY public.touhous (id, created_at, name, species, abilities, version) FROM std
 -- Name: touhous_id_seq; Type: SEQUENCE SET; Schema: public; Owner: admin
 --
 
-SELECT pg_catalog.setval('public.touhous_id_seq', 45, true);
+SELECT pg_catalog.setval('public.touhous_id_seq', 47, true);
 
 
 --

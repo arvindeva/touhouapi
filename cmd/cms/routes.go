@@ -10,6 +10,7 @@ func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
 
+	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	router.HandlerFunc(http.MethodGet, "/healthcheck", app.healthcheckHandler)
@@ -19,5 +20,5 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/touhous/:id", app.updateTouhouHandler)
 	router.HandlerFunc(http.MethodDelete, "/touhous/:id", app.deleteTouhouHandler)
 
-	return app.recoverPanic(router)
+	return app.recoverPanic(app.rateLimit(router))
 }
